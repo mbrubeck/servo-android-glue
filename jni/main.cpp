@@ -89,7 +89,7 @@ static void init_servo()
 //    LOGI("loading url is : %s", servo_url);
     
     LOGI("load servo library");
-    void* libservo = android_dlopen("/data/data/com.example.ServoAndroid/lib/libservo-d3ef4d9ac4a225a1-0.1.so");
+    void* libservo = android_dlopen("/data/data/com.example.ServoAndroid/lib/libservo-7a2a98731667888-0.1.so");
     if (libservo == NULL) {
     	LOGW("failed to load servo lib: %s", dlerror());
     	return;
