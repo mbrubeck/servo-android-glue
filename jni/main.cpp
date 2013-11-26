@@ -77,7 +77,7 @@ static void init_servo()
 {
     LOGI("init_servo");
 
-    setenv("RUST_LOG", "servo,gfx,msg,util,script,layers,js,glut", 1);
+    setenv("RUST_LOG", "servo,gfx,msg,util,script,layers,js,glut,std,rt,extra", 1);
     setenv("SERVO_URL", "/mnt/sdcard/html/demo.html", 1);
     
 //    char* size_stack = getenv("RUST_MIN_STACK");
