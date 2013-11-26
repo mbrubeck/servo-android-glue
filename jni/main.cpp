@@ -89,11 +89,11 @@ static void init_servo()
 //    LOGI("loading url is : %s", servo_url);
     
 
-    void* librustuv = android_dlopen("/data/data/com.example.ServoAndroid/lib/librustuv-d4277cd5f62aa99-0.9-pre.so");
-    if (librustuv == NULL) {
-        LOGW("failed to load rustuv lib: %s", dlerror());
-        return;
-    }
+//    void* librustuv = android_dlopen("/data/data/com.example.ServoAndroid/lib/librustuv-d4277cd5f62aa99-0.9-pre.so");
+//    if (librustuv == NULL) {
+//        LOGW("failed to load rustuv lib: %s", dlerror());
+//        return;
+//    }
 
     LOGI("load servo library");
     void* libservo = android_dlopen("/data/data/com.example.ServoAndroid/lib/libservo-a7d9249a353e2c8-0.1.so");
