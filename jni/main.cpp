@@ -79,6 +79,7 @@ static void init_servo()
 
     setenv("RUST_LOG", "servo,gfx,msg,util,script,layers,js,glut,std,rt,extra", 1);
     setenv("SERVO_URL", "/mnt/sdcard/html/demo.html", 1);
+    //setenv("RUST_THREADS", "1", 1);
     
 //    char* size_stack = getenv("RUST_MIN_STACK");
 //    char* rust_log = getenv("RUST_LOG");
@@ -96,7 +97,7 @@ static void init_servo()
 //    }
 
     LOGI("load servo library");
-    void* libservo = android_dlopen("/data/data/com.example.ServoAndroid/lib/libservo-a7d9249a353e2c8-0.1.so");
+    void* libservo = android_dlopen("/data/data/com.example.ServoAndroid/lib/libservo-9348adedf6fa4b1f-0.1.so");
     if (libservo == NULL) {
     	LOGW("failed to load servo lib: %s", dlerror());
     	return;
