@@ -78,8 +78,8 @@ static void init_servo()
     LOGI("init_servo");
 
     setenv("RUST_LOG", "servo,gfx,msg,util,script,layers,js,glut,std,rt,extra", 1);
-    setenv("SERVO_URL", "/mnt/sdcard/html/demo.html", 1);
-    //setenv("RUST_THREADS", "1", 1);
+//    setenv("SERVO_URL", "/mnt/sdcard/html/demo.html", 1);
+//    setenv("RUST_THREADS", "1", 1);
     
 //    char* size_stack = getenv("RUST_MIN_STACK");
 //    char* rust_log = getenv("RUST_LOG");
@@ -136,8 +136,8 @@ static void init_servo()
     *(void**)(&amain) = dlsym(libservo, "amain");
     if (amain) {
         LOGI("go into amain()");
-        static char* argv[] = {"servo"};
-        (*amain)(1, argv);
+        static char* argv[] = {"servo", "/mnt/sdcard/html/demo.html"};
+        (*amain)(2, argv);
         return;
     }
     LOGW("could not find amain() from servo");
