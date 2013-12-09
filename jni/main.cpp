@@ -78,7 +78,6 @@ static void init_servo()
     LOGI("init_servo");
 
     setenv("RUST_LOG", "servo,gfx,msg,util,script,layers,js,glut,std,rt,extra", 1);
-    setenv("SERVO_URL", "/mnt/sdcard/html/demo.html", 1);
     //setenv("RUST_THREADS", "1", 1);
     
 //    char* size_stack = getenv("RUST_MIN_STACK");
@@ -132,19 +131,19 @@ static void init_servo()
     REGISTER_FUNCTION(libglut, glutInitWindowSize);
     REGISTER_FUNCTION(libglut, glutGetModifiers);
 
-    void (*amain)(int, char**);
-    *(void**)(&amain) = dlsym(libservo, "amain");
-    if (amain) {
-        LOGI("go into amain()");
-        static char* argv[] = {"servo"};
-        (*amain)(1, argv);
+    void (*main)(int, char**);
+    *(void**)(&main) = dlsym(libservo, "android_start");
+    if (main) {
+        LOGI("go into android_start()");
+        static char* argv[] = {"servo", "/mnt/sdcard/html/demo.html"};
+        (*main)(2, argv);
         return;
     }
-    LOGW("could not find amain() from servo");
+    LOGW("could not find android_start() in the libServo shared library");
 }
 
-const int W = 800;
-const int H = 600;
+const int W = 2560;
+const int H = 1600;
 GLuint program;
 /**
  * Initialize an EGL context for the current display.
