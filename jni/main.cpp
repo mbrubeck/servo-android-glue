@@ -17,8 +17,10 @@
 
 #include <jni.h>
 #include <errno.h>
+#include <pthread.h>
 #include <string.h>
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -73,19 +75,34 @@ typedef int (*fty_glutGetModifiers)();
 
 static void init_servo()
 {
+    char *prefix = "/data/data/com.example.ServoAndroid/lib/";
+    char *servo_path = "/data/data/com.example.ServoAndroid/lib/libservo.so";
+
     LOGI("initializing native application for Servo");
 
-    setenv("RUST_LOG", "servo", 1);
+    //setenv("RUST_LOG", "servo,gfx,script", 1);
 
     LOGI("load servo library");
-    void* libservo = android_dlopen("/data/data/com.example.ServoAndroid/lib/libservo.so");
+    void* libservo = android_dlopen(servo_path);
     if (libservo == NULL) {
     	LOGW("failed to load servo lib: %s", dlerror());
     	return;
     }
 
-    LOGI("load rust-glut library");
-    void* libglut = android_dlopen("/data/data/com.example.ServoAndroid/lib/libglut-102129e09d96658-0.1.so");
+    char **needed = android_dlneeds(servo_path);
+    char *libglut_fullname;
+    for (int i = 0; needed[i] != NULL; i++) {
+        if (strncmp(needed[i], "libglut", 7) == 0) {
+            libglut_fullname = needed[i];
+            break;
+        }
+    }
+
+    char glut_path[100] = ""; 
+    strcat(glut_path, prefix);
+    strcat(glut_path, libglut_fullname);
+    LOGI("load rust-glut library : %s", glut_path);
+    void* libglut = android_dlopen(glut_path);
     if (libglut == NULL) {
         LOGW("failed to load rust-glut lib: %s", dlerror());
         return;
@@ -124,6 +141,47 @@ static void init_servo()
     LOGW("could not find android_start() in the libServo shared library");
 }
 
+extern "C" void *stderr_thread(void *) {
+    int pipes[2];
+    pipe(pipes);
+    dup2(pipes[1], STDERR_FILENO);
+    FILE *inputFile = fdopen(pipes[0], "r");
+    char readBuffer[1024];
+    while (1) {
+        fgets(readBuffer, sizeof(readBuffer), inputFile);
+        __android_log_write(2, "stderr", readBuffer);
+    }
+    return NULL;
+}
+
+extern "C" void *stdout_thread(void *) {
+    int pipes[2];
+    pipe(pipes);
+    dup2(pipes[1], STDOUT_FILENO);
+    FILE *inputFile = fdopen(pipes[0], "r");
+    char readBuffer[1024];
+    while (1) {
+        fgets(readBuffer, sizeof(readBuffer), inputFile);
+        __android_log_write(2, "stdout", readBuffer);
+    }
+    return NULL;
+}
+
+pthread_t stderr_tid = -1;
+pthread_t stdout_tid = -1;
+
+static void init_std_threads() {
+    pthread_create(&stderr_tid, NULL, stderr_thread, NULL);
+    pthread_create(&stdout_tid, NULL, stdout_thread, NULL);
+}
+
+static void shutdown_std_threads() {
+    // fgets is a safe cancellation point for pthread_cancel.
+    // TODO: missing on Android?
+    //      pthread_cancel(stderr_tid);
+    //      pthread_cancel(stdout_tid);
+}
+
 const int W = 2560;
 const int H = 1600;
 
@@ -137,7 +195,9 @@ static int init_display() {
 int main(int argc, char* argv[])
 {
     init_display();
+    init_std_threads();
     init_servo();
+    shutdown_std_threads();
 
     return 0;
 }
