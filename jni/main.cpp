@@ -17,8 +17,10 @@
 
 #include <jni.h>
 #include <errno.h>
+#include <pthread.h>
 #include <string.h>
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -98,12 +100,12 @@ static void init_servo()
     LOGI("load servo library");
     void* libservo = android_dlopen("/data/data/com.example.ServoAndroid/lib/libservo.so");
     if (libservo == NULL) {
-    	LOGW("failed to load servo lib: %s", dlerror());
-    	return;
+        LOGW("failed to load servo lib: %s", dlerror());
+        return;
     }
 
     LOGI("load rust-glut library");
-    void* libglut = android_dlopen("/data/data/com.example.ServoAndroid/lib/libglut-102129e09d96658-0.1.so");
+    void* libglut = android_dlopen("/data/data/com.example.ServoAndroid/lib/libglut-f186cebf-0.1.so");
     if (libglut == NULL) {
         LOGW("failed to load rust-glut lib: %s", dlerror());
         return;
@@ -135,18 +137,58 @@ static void init_servo()
     *(void**)(&main) = dlsym(libservo, "android_start");
     if (main) {
         LOGI("go into android_start()");
-        static char* argv[] = {"servo", "/mnt/sdcard/html/demo.html"};
+        static char* argv[] = {"servo", "/sdcard/about-mozilla.html"};
         (*main)(2, argv);
         return;
     }
     LOGW("could not find android_start() in the libServo shared library");
 }
 
+extern "C" void *stderr_thread(void *) {
+    int pipes[2];
+    pipe(pipes);
+    dup2(pipes[1], STDERR_FILENO);
+    FILE *inputFile = fdopen(pipes[0], "r");
+    char readBuffer[1024];
+    while (1) {
+        fgets(readBuffer, sizeof(readBuffer), inputFile);
+        __android_log_write(2, "stderr", readBuffer);
+    }
+        return NULL;
+}
+
+extern "C" void *stdout_thread(void *) {
+    int pipes[2];
+    pipe(pipes);
+    dup2(pipes[1], STDOUT_FILENO);
+    FILE *inputFile = fdopen(pipes[0], "r");
+    char readBuffer[1024];
+    while (1) {
+        fgets(readBuffer, sizeof(readBuffer), inputFile);
+        __android_log_write(2, "stdout", readBuffer);
+    }
+        return NULL;
+}
+
+pthread_t stderr_tid = -1;
+pthread_t stdout_tid = -1;
+
+static void init_std_threads() {
+  pthread_create(&stderr_tid, NULL, stderr_thread, NULL);
+  pthread_create(&stdout_tid, NULL, stdout_thread, NULL);
+}
+
+static void shutdown_std_threads() {
+  // FIXME(larsberg): this needs to change to signal the threads
+  // to exit, as pthread_cancel is not implemented on Android.
+}
+
+
 const int W = 2560;
 const int H = 1600;
 
 static int init_display() {
-	LOGI("initialize GLUT window");
+    LOGI("initialize GLUT window");
 
     glutInitWindowSize(W, H);
     return 0;
@@ -155,7 +197,9 @@ static int init_display() {
 int main(int argc, char* argv[])
 {
     init_display();
+    init_std_threads();
     init_servo();
+    shutdown_std_threads();
 
     return 0;
 }
