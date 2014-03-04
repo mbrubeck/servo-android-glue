@@ -15,12 +15,12 @@
  *
  */
 
-//BEGIN_INCLUDE(all)
 #include <jni.h>
 #include <errno.h>
-//#include <dlfcn.h>
+#include <pthread.h>
 #include <string.h>
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -75,9 +75,10 @@ typedef int (*fty_glutGetModifiers)();
 
 static void init_servo()
 {
-    LOGI("init_servo");
+    LOGI("initializing native application for Servo");
 
     setenv("RUST_LOG", "servo,gfx,msg,util,script,layers,js,glut,std,rt,extra", 1);
+
 //    setenv("SERVO_URL", "/mnt/sdcard/html/demo.html", 1);
 //    setenv("RUST_THREADS", "1", 1);
     
@@ -97,14 +98,14 @@ static void init_servo()
 //    }
 
     LOGI("load servo library");
-    void* libservo = android_dlopen("/data/data/com.example.ServoAndroid/lib/libservo-9348adedf6fa4b1f-0.1.so");
+    void* libservo = android_dlopen("/data/data/com.example.ServoAndroid/lib/libservo.so");
     if (libservo == NULL) {
-    	LOGW("failed to load servo lib: %s", dlerror());
-    	return;
+        LOGW("failed to load servo lib: %s", dlerror());
+        return;
     }
 
     LOGI("load rust-glut library");
-    void* libglut = android_dlopen("/data/data/com.example.ServoAndroid/lib/libglut-102129e09d96658-0.1.so");
+    void* libglut = android_dlopen("/data/data/com.example.ServoAndroid/lib/libglut-f186cebf-0.1.so");
     if (libglut == NULL) {
         LOGW("failed to load rust-glut lib: %s", dlerror());
         return;
@@ -132,230 +133,73 @@ static void init_servo()
     REGISTER_FUNCTION(libglut, glutInitWindowSize);
     REGISTER_FUNCTION(libglut, glutGetModifiers);
 
-    void (*amain)(int, char**);
-    *(void**)(&amain) = dlsym(libservo, "amain");
-    if (amain) {
-        LOGI("go into amain()");
-        static char* argv[] = {"servo", "/mnt/sdcard/html/demo.html"};
-        (*amain)(2, argv);
+    void (*main)(int, char**);
+    *(void**)(&main) = dlsym(libservo, "android_start");
+    if (main) {
+        LOGI("go into android_start()");
+        static char* argv[] = {"servo", "/sdcard/about-mozilla.html"};
+        (*main)(2, argv);
         return;
     }
-    LOGW("could not find amain() from servo");
+    LOGW("could not find android_start() in the libServo shared library");
 }
 
-const int W = 800;
-const int H = 600;
-GLuint program;
-/**
- * Initialize an EGL context for the current display.
- */
+extern "C" void *stderr_thread(void *) {
+    int pipes[2];
+    pipe(pipes);
+    dup2(pipes[1], STDERR_FILENO);
+    FILE *inputFile = fdopen(pipes[0], "r");
+    char readBuffer[1024];
+    while (1) {
+        fgets(readBuffer, sizeof(readBuffer), inputFile);
+        __android_log_write(2, "stderr", readBuffer);
+    }
+        return NULL;
+}
+
+extern "C" void *stdout_thread(void *) {
+    int pipes[2];
+    pipe(pipes);
+    dup2(pipes[1], STDOUT_FILENO);
+    FILE *inputFile = fdopen(pipes[0], "r");
+    char readBuffer[1024];
+    while (1) {
+        fgets(readBuffer, sizeof(readBuffer), inputFile);
+        __android_log_write(2, "stdout", readBuffer);
+    }
+        return NULL;
+}
+
+pthread_t stderr_tid = -1;
+pthread_t stdout_tid = -1;
+
+static void init_std_threads() {
+  pthread_create(&stderr_tid, NULL, stderr_thread, NULL);
+  pthread_create(&stdout_tid, NULL, stdout_thread, NULL);
+}
+
+static void shutdown_std_threads() {
+  // FIXME(larsberg): this needs to change to signal the threads
+  // to exit, as pthread_cancel is not implemented on Android.
+}
+
+
+const int W = 2560;
+const int H = 1600;
+
 static int init_display() {
-    // initialize OpenGL ES and EGL
-
-    int argc = 1;
-    char* argv[] = {"servo"};
-
-	LOGI("initialize GLUT START");
+    LOGI("initialize GLUT window");
 
     glutInitWindowSize(W, H);
-	LOGI("initialize 1");
-//    glutInitWindowPosition(40,40);
-	LOGI("initialize 2");
-//    glutInit(&argc, argv);
-	LOGI("initialize 3");
-//    glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH | GLUT_MULTISAMPLE);
-	LOGI("initialize 4");
-    
-//    glutCreateWindow("Servo Android");
-    
-	LOGI("initialize OpenGL END");
-    return 0;
-}
-
-
-unsigned short data[800 * 600 * 2];
-
-void test_display() {
-    static int count = 0;
-    ++count;
-	
-    LOGI("test display");
-    
-    glClearColor(0.5, 0.5, 1, 1);
-    glClear(GL_COLOR_BUFFER_BIT);
-    
-    glViewport(0, 0, W, H);
-//    glMatrixMode(GL_PROJECTION);
-//    glLoadIdentity();
-//    glOrthof(0, W, H, 0, -1, 1);
-//    glMatrixMode(GL_MODELVIEW);
-//    glLoadIdentity();
-
-    glEnable(GL_TEXTURE_2D);
-    
-    GLuint textures[] = {0};
-    glGenTextures(1, textures);
-
-    GLuint texture = textures[0];
-    glBindTexture(GL_TEXTURE_2D, texture);
-    LOGI("test display - bind texture: %d", texture);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-
-    int idx = 0;
-    for (int y = 0; y < H; y++) {
-        for (int x = 0; x < W; x++) {
-            unsigned short r = (unsigned char)((count + idx) >> 3);
-            unsigned short g = (unsigned char)(((count + 2*idx) << 1) >> 2);
-            unsigned short b = (unsigned char)(((count + 3*idx) << 2) >> 3);
-            data[idx++] = (r << 4) | g;
-            data[idx++] = (b << 4) | 0xF;
-        }
-    }
-    
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, W, H, 0, GL_RGBA,
-            GL_UNSIGNED_SHORT_4_4_4_4, data);
-
-//    glFrontFace(GL_CW);
-
-    LOGI("texture end");
-//    glEnableClientState(GL_VERTEX_ARRAY);
-//    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glUniform1i(glGetUniformLocation(program, "uSampler"), 0);
-    LOGI("uSampler: %d", glGetUniformLocation(program, "uSampler"));
- 
-    GLuint buffers[] = {0, 0};
-   glGenBuffers(2, buffers);
-    
-    GLuint triangle_vertex_buffer = buffers[0];
-    GLfloat vertices1[12] = {0, 0, 0,  0, H, 0,  W, 0, 0,  W, H, 0};
-    glBindBuffer(GL_ARRAY_BUFFER, triangle_vertex_buffer);
-    glVertexAttribPointer(glGetAttribLocation(program, "aVertexPosition"), 3, GL_FLOAT, GL_FALSE, 0, 0);
-    glBufferData(GL_ARRAY_BUFFER, 12 * sizeof(GLfloat), vertices1, GL_STATIC_DRAW);
-    LOGI("aVertexPosition: %d", glGetAttribLocation(program, "aVertexPosition"));
-
-    GLuint texture_coord_buffer = buffers[1];
-    GLfloat vertices2[8] = {0, 0,  0, 1,  1, 0,  1, 1};
-    glBindBuffer(GL_ARRAY_BUFFER, texture_coord_buffer);
-    glVertexAttribPointer(glGetAttribLocation(program, "aTextureCoord"), 2, GL_FLOAT, GL_FALSE, 0, 0);
-    glBufferData(GL_ARRAY_BUFFER, 8 * sizeof(GLfloat), vertices2, GL_STATIC_DRAW);
-    LOGI("aTextureCoord: %d", glGetAttribLocation(program, "aTextureCoord"));
-
-//    glVertexPointer(3, GL_FLOAT, 0, vertices1);
-//    glTexCoordPointer(2, GL_FLOAT, 0, vertices2);
-
-//    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-//    glFlush();
-
-    glBindTexture(GL_TEXTURE_2D, 0);
-    
-    glutSwapBuffers();
-    glutPostRedisplay();
-    
-//    glDisableClientState(GL_VERTEX_ARRAY);
-//    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-    glDisable(GL_TEXTURE_2D);
-}
-
-static int test(int argc, char* argv[]) {
-    LOGI("test");
-    glutInitWindowPosition(0, 0);
-    glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH | GLUT_MULTISAMPLE);
-    glutCreateWindow("Servo Android");
-
-    int vertex_shader;
-    int frag_shader;
-    int err;
-    int res;
-    
-    LOGI("create vertex shader");
-    vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-    
-    LOGI("vertex shader id: %d", vertex_shader);
-    const GLchar* vertex_source[] = {
-        "attribute vec3 aVertexPosition;\n"
-        "attribute vec2 aTextureCoord;\n"
-        "uniform mat4 uMVMatrix;\n"
-        "uniform mat4 uPMatrix;\n"
-        "varying vec2 vTextureCoord;\n"
-        "void main(void) {\n"
-            "gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);\n"
-            "vTextureCoord = aTextureCoord;\n"
-        "}\n"};
-
-    int vertex_source_len[] = { strlen(vertex_source[0]) };
-    
-    LOGI("glShaderSource");
-    glShaderSource(vertex_shader, 1, vertex_source, vertex_source_len);
-    
-    LOGI("glCompileShader");
-    glCompileShader(vertex_shader);
-    err = glGetError();
-    LOGI("shader erro: %d", err);
-
-    glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &res);
-    LOGI("compile status: %d\n", res);
-
-    
-    LOGI("create fragment shader");
-    frag_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    
-    LOGI("shader id: %d", frag_shader);
-    const GLchar* frag_source[] = {
-        "precision mediump float;\n"
-        "varying vec2 vTextureCoord;\n"
-        "uniform sampler2D uSampler;\n"
-        "void main(void) {\n"
-            "gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));\n"
-        "}\n"};
-
-    int frag_source_len[] = { strlen(frag_source[0]) };
-    
-    LOGI("glShaderSource");
-    glShaderSource(frag_shader, 1, frag_source, frag_source_len);
-    
-    LOGI("glCompileShader");
-    glCompileShader(frag_shader);
-    err = glGetError();
-    LOGI("shader erro: %d", err);
-
-    glGetShaderiv(frag_shader, GL_COMPILE_STATUS, &res);
-    LOGI("compile status: %d\n", res);
-   
-    program = glCreateProgram();
-    glAttachShader(program, vertex_shader);
-    glAttachShader(program, frag_shader);
-    glLinkProgram(program);
-    GLint result;
-    glGetProgramiv(program, GL_LINK_STATUS, &result);
-    if (result == 0) {
-        LOGI("failed to initialize program");
-    }
-    glUseProgram(program);
-    
-   
-    glutDisplayFunc(test_display);
-
-    LOGI("glutMainLoop");
-    glutMainLoop();
     return 0;
 }
 
 int main(int argc, char* argv[])
 {
     init_display();
+    init_std_threads();
     init_servo();
-
-    //test(argc, argv);
+    shutdown_std_threads();
 
     return 0;
 }
-
-//END_INCLUDE(all)
