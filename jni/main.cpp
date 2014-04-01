@@ -60,7 +60,6 @@ typedef void (*fty_glutIdleFunc)(void(*)());
 typedef void (*fty_glutInitWindowSize)(int, int);
 typedef int (*fty_glutGetModifiers)();
 
-
 #define REGISTER_FUNCTION(lib, function)\
     void (*reg_fn_##function)(fty_##function);\
     *(void**)(&reg_fn_##function) = dlsym(lib, "reg_fn_" #function);\
@@ -91,16 +90,15 @@ static void init_servo()
 //    LOGI("loading url is : %s", servo_url);
     
 
-//    void* librustuv = android_dlopen("/data/data/com.example.ServoAndroid/lib/librustuv-d4277cd5f62aa99-0.9-pre.so");
-//    if (librustuv == NULL) {
-//        LOGW("failed to load rustuv lib: %s", dlerror());
-//        return;
-//    }
-
     LOGI("load servo library");
     void* libservo = android_dlopen("/data/data/com.example.ServoAndroid/lib/libservo.so");
     if (libservo == NULL) {
         LOGW("failed to load servo lib: %s", dlerror());
+        return;
+    }
+    void* crate_map = dlsym(libservo, "_rust_crate_map_toplevel");
+    if (crate_map == NULL) {
+        LOGW("failed to load the crate map from the servo lib: %s", dlerror());
         return;
     }
 
@@ -133,11 +131,26 @@ static void init_servo()
     REGISTER_FUNCTION(libglut, glutInitWindowSize);
     REGISTER_FUNCTION(libglut, glutGetModifiers);
 
+    
+    LOGI("load libstd library to set the cratemap");
+    void* libstd = android_dlopen("/data/data/com.example.ServoAndroid/lib/libstd-966edb7e-0.10-pre.so");
+    if (libstd == NULL) {
+        LOGW("failed to load libstd: %s", dlerror());
+        return;
+    }
+    
+    void (*rust_set_crate_map)(void*) = (void (*)(void*))dlsym(libstd, "rust_set_crate_map");
+    if (rust_set_crate_map == NULL) {
+        LOGW("failed to load rust_set_crate_map from libstd: %s", dlerror());
+        return;
+    }
+    rust_set_crate_map(crate_map);
+
     void (*main)(int, char**);
     *(void**)(&main) = dlsym(libservo, "android_start");
     if (main) {
         LOGI("go into android_start()");
-        static char* argv[] = {"servo", "/sdcard/about-mozilla.html"};
+        static char* argv[] = {"servo", "/mnt/sdcard/html/about-mozilla.html"};
         (*main)(2, argv);
         return;
     }

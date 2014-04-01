@@ -211,7 +211,7 @@ android_dlneeds(const char *library)
                     return NULL;
                 }
                 if (dyn.d_tag == DT_NEEDED) {
-                    /* LOGI("needs: %s\n", dynstr + dyn.d_un.d_val); */
+                    LOGI("needs: %s\n", dynstr + dyn.d_un.d_val); 
                     result[n_needed] = strdup(dynstr + dyn.d_un.d_val);
                     n_needed++;
                 }
@@ -243,12 +243,12 @@ android_dlopen(const char *library)
     char* library_path = getenv("LD_LIBRARY_PATH");
     strcpy(ld_library_path, library_path);
 
-    LOGI("LD_LIBRARY_PATH is : %s", ld_library_path);
+    //    LOGI("LD_LIBRARY_PATH is : %s", ld_library_path);
     libraries[i1] = strtok(ld_library_path, ":");
-    LOGI("library : %s", libraries[i1]);
+    //LOGI("library : %s", libraries[i1]);
     while(libraries[i1]) {
         libraries[++i1] = strtok(NULL, ":");
-        LOGI("library : %s", libraries[i1]);
+        //LOGI("library : %s", libraries[i1]);
     }
     icnt = i1;
 
@@ -260,10 +260,10 @@ android_dlopen(const char *library)
         return 0;
     }
     library_locations[0] = "/data/data/com.example.ServoAndroid/lib";
-    LOGI("added library path : %s", library_locations[0]);
+    //    LOGI("added library path : %s", library_locations[0]);
     for(int i = 0; i < icnt; i++ ) {
         library_locations[i+1] = strdup(libraries[i]);
-        LOGI("added library path : %s", library_locations[i+1]);
+        //        LOGI("added library path : %s", library_locations[i+1]);
     }
 
     /*
