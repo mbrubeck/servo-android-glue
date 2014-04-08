@@ -103,7 +103,7 @@ static void init_servo()
     }
 
     LOGI("load rust-glut library");
-    void* libglut = android_dlopen("/data/data/com.example.ServoAndroid/lib/libglut-f186cebf-0.1.so");
+    void* libglut = android_dlopen("/data/data/com.example.ServoAndroid/lib/libglut-16b1121d-0.1.so");
     if (libglut == NULL) {
         LOGW("failed to load rust-glut lib: %s", dlerror());
         return;
@@ -133,7 +133,7 @@ static void init_servo()
 
     
     LOGI("load libstd library to set the cratemap");
-    void* libstd = android_dlopen("/data/data/com.example.ServoAndroid/lib/libstd-966edb7e-0.10-pre.so");
+    void* libstd = android_dlopen("/data/data/com.example.ServoAndroid/lib/libstd-31b43f22-0.10-pre.so");
     if (libstd == NULL) {
         LOGW("failed to load libstd: %s", dlerror());
         return;
