@@ -27,6 +27,7 @@
  * instead of those above.
  */
 
+#include <assert.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -291,7 +292,7 @@ android_dlopen(const char *library)
 
     struct stat st;
     void *p;
-    char *full_name;
+    char *full_name = NULL;
     char **needed;
     int i;
     int found;
@@ -313,10 +314,12 @@ android_dlopen(const char *library)
         full_name = strdup(library);
 
         if (stat(full_name, &st) == 0 &&
-            S_ISREG(st.st_mode))
+            S_ISREG(st.st_mode)) {
             found = 1;
-        else
+        } else {
             free(full_name);
+            full_name = NULL;
+        }
     } else {
         for (i = 0; !found && library_locations[i] != NULL; i++) {
             full_name = (char*)malloc(strlen(library_locations[i]) + 1 + strlen(library) + 1);
@@ -325,15 +328,18 @@ android_dlopen(const char *library)
             strcat(full_name, library);
 
             if (stat(full_name, &st) == 0 &&
-                S_ISREG(st.st_mode))
+                S_ISREG(st.st_mode)) {
                 found = 1;
-            else
+            } else {
                 free(full_name);
+                full_name = NULL;
+            }
         }
     }
 
     if (!found) {
         SET_ERROR("Library %s not found", library);
+        assert(full_name == NULL); // full_name was freed above if !found
         return NULL;
     }
 
@@ -359,9 +365,10 @@ android_dlopen(const char *library)
     LOGI("dlopen(%s) = %p, %ld.%03lds",
          full_name, p,
          (long) tvdiff.tv_sec, (long) tvdiff.tv_usec / 1000);
-    free(full_name);
     if (p == NULL)
         SET_ERROR("Error from dlopen(%s): %s", full_name, dlerror());
+    free(full_name);
+    full_name = NULL;
 
     new_loaded_lib = (struct loadedLib*)malloc(sizeof(*new_loaded_lib));
     new_loaded_lib->name = strdup(library);
