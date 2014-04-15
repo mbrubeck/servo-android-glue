@@ -12,13 +12,23 @@ import android.util.Log;
 public class ServoActivity extends NativeActivity {
     private static final String LOGTAG = "ServoActivity";
 
+    static {
+        System.loadLibrary("ServoAndroid");
+    }
+
+    public native void loadUrl(String url);
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
         final Intent intent = getIntent();
         if (intent.getAction().equals(Intent.ACTION_VIEW)) {
             final String url = intent.getDataString();
             Log.d(LOGTAG, "Received url "+url);
+            loadUrl(url);
+        } else {
+            loadUrl("/mnt/sdcard/html/about-mozilla.html");
         }
-        super.onCreate(savedInstanceState);
     }
 }

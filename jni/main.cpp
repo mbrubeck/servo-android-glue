@@ -72,7 +72,7 @@ typedef int (*fty_glutGetModifiers)();
         LOGI("registerd "#function);\
     }\
 
-static void init_servo()
+static void init_servo(const char* url)
 {
     LOGI("initializing native application for Servo");
 
@@ -119,11 +119,11 @@ static void init_servo()
     REGISTER_FUNCTION(libservo, glutInitWindowSize);
     REGISTER_FUNCTION(libservo, glutGetModifiers);
 
-    void (*main)(int, char**);
+    void (*main)(int, const char**);
     *(void**)(&main) = dlsym(libservo, "android_start");
     if (main) {
         LOGI("go into android_start()");
-        static char* argv[] = {"servo", "/mnt/sdcard/html/about-mozilla.html"};
+        static const char* argv[] = {"servo", url};
         (*main)(2, argv);
         return;
     }
@@ -180,12 +180,29 @@ static int init_display() {
     return 0;
 }
 
-int main(int argc, char* argv[])
+// loadUrl
+//
+// Start up Servo with a URL arg
+extern "C"
+JNIEXPORT void JNICALL
+Java_org_mozilla_servo_ServoActivity_loadUrl(JNIEnv *env, jobject obj, jstring urlStr)
 {
+    const char* url = env->GetStringUTFChars(urlStr, NULL);
+    LOGI("loadUrl received %s", url);
+
     init_display();
     init_std_threads();
-    init_servo();
+    init_servo(url);
     shutdown_std_threads();
 
-    return 0;
+    env->ReleaseStringUTFChars(urlStr, url);
+}
+
+void android_main(struct android_app* state)
+{
+    LOGI("android_main");
+    app_dummy();
+    while (1) {
+        ALooper_pollAll(-1, NULL, NULL, NULL);
+    }
 }
