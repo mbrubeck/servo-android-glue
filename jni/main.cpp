@@ -96,11 +96,6 @@ static void init_servo()
         LOGW("failed to load servo lib: %s", dlerror());
         return;
     }
-    void* crate_map = dlsym(libservo, "_rust_crate_map_toplevel");
-    if (crate_map == NULL) {
-        LOGW("failed to load the crate map from the servo lib: %s", dlerror());
-        return;
-    }
 
     LOGI("load rust-glut library");
     void* libglut = android_dlopen("/data/data/com.example.ServoAndroid/lib/libglut-16b1121d-0.1.so");
@@ -130,21 +125,6 @@ static void init_servo()
     REGISTER_FUNCTION(libglut, glutIdleFunc);
     REGISTER_FUNCTION(libglut, glutInitWindowSize);
     REGISTER_FUNCTION(libglut, glutGetModifiers);
-
-    
-    LOGI("load libstd library to set the cratemap");
-    void* libstd = android_dlopen("/data/data/com.example.ServoAndroid/lib/libstd-31b43f22-0.10-pre.so");
-    if (libstd == NULL) {
-        LOGW("failed to load libstd: %s", dlerror());
-        return;
-    }
-    
-    void (*rust_set_crate_map)(void*) = (void (*)(void*))dlsym(libstd, "rust_set_crate_map");
-    if (rust_set_crate_map == NULL) {
-        LOGW("failed to load rust_set_crate_map from libstd: %s", dlerror());
-        return;
-    }
-    rust_set_crate_map(crate_map);
 
     void (*main)(int, char**);
     *(void**)(&main) = dlsym(libservo, "android_start");
