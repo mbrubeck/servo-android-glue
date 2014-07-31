@@ -97,34 +97,27 @@ static void init_servo()
         return;
     }
 
-    LOGI("load rust-glut library");
-    void* libglut = android_dlopen("/data/data/com.example.ServoAndroid/lib/libglut-16b1121d-0.1.so");
-    if (libglut == NULL) {
-        LOGW("failed to load rust-glut lib: %s", dlerror());
-        return;
-    }
-
-    REGISTER_FUNCTION(libglut, glutMainLoopEvent);
-    REGISTER_FUNCTION(libglut, glutInit);
-    REGISTER_FUNCTION(libglut, glutInitDisplayMode);
-    REGISTER_FUNCTION(libglut, glutCreateWindow);
-    REGISTER_FUNCTION(libglut, glutDestroyWindow);
-    REGISTER_FUNCTION(libglut, glutPostRedisplay);
-    REGISTER_FUNCTION(libglut, glutSwapBuffers);
-    REGISTER_FUNCTION(libglut, glutGetWindow);
-    REGISTER_FUNCTION(libglut, glutSetWindow);
-    REGISTER_FUNCTION(libglut, glutReshapeWindow);
-    REGISTER_FUNCTION(libglut, glutDisplayFunc);
-    REGISTER_FUNCTION(libglut, glutReshapeFunc);
-    REGISTER_FUNCTION(libglut, glutTimerFunc);
-    REGISTER_FUNCTION(libglut, glutGet);
-    REGISTER_FUNCTION(libglut, glutKeyboardFunc);
-    REGISTER_FUNCTION(libglut, glutMouseFunc);
-    REGISTER_FUNCTION(libglut, glutMouseWheelFunc);
-    REGISTER_FUNCTION(libglut, glutSetWindowTitle);
-    REGISTER_FUNCTION(libglut, glutIdleFunc);
-    REGISTER_FUNCTION(libglut, glutInitWindowSize);
-    REGISTER_FUNCTION(libglut, glutGetModifiers);
+    REGISTER_FUNCTION(libservo, glutMainLoopEvent);
+    REGISTER_FUNCTION(libservo, glutInit);
+    REGISTER_FUNCTION(libservo, glutInitDisplayMode);
+    REGISTER_FUNCTION(libservo, glutCreateWindow);
+    REGISTER_FUNCTION(libservo, glutDestroyWindow);
+    REGISTER_FUNCTION(libservo, glutPostRedisplay);
+    REGISTER_FUNCTION(libservo, glutSwapBuffers);
+    REGISTER_FUNCTION(libservo, glutGetWindow);
+    REGISTER_FUNCTION(libservo, glutSetWindow);
+    REGISTER_FUNCTION(libservo, glutReshapeWindow);
+    REGISTER_FUNCTION(libservo, glutDisplayFunc);
+    REGISTER_FUNCTION(libservo, glutReshapeFunc);
+    REGISTER_FUNCTION(libservo, glutTimerFunc);
+    REGISTER_FUNCTION(libservo, glutGet);
+    REGISTER_FUNCTION(libservo, glutKeyboardFunc);
+    REGISTER_FUNCTION(libservo, glutMouseFunc);
+    REGISTER_FUNCTION(libservo, glutMouseWheelFunc);
+    REGISTER_FUNCTION(libservo, glutSetWindowTitle);
+    REGISTER_FUNCTION(libservo, glutIdleFunc);
+    REGISTER_FUNCTION(libservo, glutInitWindowSize);
+    REGISTER_FUNCTION(libservo, glutGetModifiers);
 
     void (*main)(int, char**);
     *(void**)(&main) = dlsym(libservo, "android_start");
