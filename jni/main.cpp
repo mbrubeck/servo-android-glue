@@ -76,7 +76,7 @@ static void init_servo()
 {
     LOGI("initializing native application for Servo");
 
-    setenv("RUST_LOG", "servo,gfx,msg,util,script,layers,js,glut,std,rt,extra", 1);
+    setenv("RUST_LOG", "servo,gfx,msg,util,layers,js,glut,std,rt,extra", 1);
 
 //    setenv("SERVO_URL", "/mnt/sdcard/html/demo.html", 1);
 //    setenv("RUST_THREADS", "1", 1);
