@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- BEGIN_INCLUDE(manifest) -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-        package="com.example.ServoAndroid"
+        package="org.mozilla.servo"
         android:versionCode="1"
         android:versionName="1.0">
 
@@ -21,13 +21,9 @@
         <activity android:name="org.mozilla.servo.ServoActivity"
                 android:label="@string/app_name"
                 android:exported="true"
-                android:hasCode="false"
                 android:hardwareAccelerated="true"
                 android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
                 android:configChanges="orientation|keyboardHidden">
-            <!-- Tell NativeActivity the name of or .so -->
-            <meta-data android:name="android.app.lib_name"
-                    android:value="ServoAndroid" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

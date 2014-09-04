@@ -31,7 +31,8 @@
 
 #include <android/sensor.h>
 #include <android/log.h>
-#include <android_native_app_glue.h>
+//#include <android/native_activity.h>
+//#include <android_native_app_glue.h>
 #include <android-dl.h>
 
 #define LOG(prio, tag, a, args...) __android_log_print(prio, tag, "[%s::%d]"#a"",__FUNCTION__, __LINE__, ##args);
@@ -180,6 +181,16 @@ static int init_display() {
     return 0;
 }
 
+extern "C"
+JNIEXPORT void JNICALL
+Java_org_mozilla_servo_ServoActivity_initDisplay(JNIEnv *env, jobject obj, jobject handle)
+{
+    jclass jEGLSurfaceClass = env->FindClass("com/google/android/gles_jni/EGLSurfaceImpl");
+    jfieldID jEGLSurfacePointerField = env->GetFieldID(jEGLSurfaceClass, "mEGLSurface", "I");
+    EGLSurface surface = reinterpret_cast<EGLSurface>(env->GetIntField(handle, jEGLSurfacePointerField));
+    init_display();
+}
+
 // loadUrl
 //
 // Start up Servo with a URL arg
@@ -190,7 +201,6 @@ Java_org_mozilla_servo_ServoActivity_loadUrl(JNIEnv *env, jobject obj, jstring u
     const char* url = env->GetStringUTFChars(urlStr, NULL);
     LOGI("loadUrl received %s", url);
 
-    init_display();
     init_std_threads();
     init_servo(url);
     shutdown_std_threads();
@@ -198,6 +208,7 @@ Java_org_mozilla_servo_ServoActivity_loadUrl(JNIEnv *env, jobject obj, jstring u
     env->ReleaseStringUTFChars(urlStr, url);
 }
 
+/*
 void android_main(struct android_app* state)
 {
     LOGI("android_main");
@@ -206,3 +217,6 @@ void android_main(struct android_app* state)
         ALooper_pollAll(-1, NULL, NULL, NULL);
     }
 }
+*/
+
+int main(int argc, char *argv[]) { return 0; }
